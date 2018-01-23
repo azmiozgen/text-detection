@@ -18,15 +18,17 @@ In Proceedings of the 21st International Conference on
 Pattern Recognition (ICPR2012), pages 681–684, Nov
 2012.
 
-And also [Tesseract-OCR](https://opensource.google.com/projects/
-tesseract.) tool is used at some steps of the algorithm.
+And also [Tesseract-OCR](https://opensource.google.com/projects/tesseract.)
+tool is used at some steps of the algorithm.
 
 ## USAGE
 
 `python text_detect.py -i images/scenetext01.jpg -d both+ -t`
 
-Option *-i* is image path, *-d* is SWT direction *-t* option chooses if Tesseract will be used.
-For more detail (seeing intermediate steps) below usage is also available.
+Option *-i* is image path, *-d* is SWT direction, *-t* option chooses if Tesseract will be used. Normally Tesseract runs poorly if whole image given as input.
+But I use it for final decision of bounding boxes and it is not required all the time.
+
+For more detail (seeing intermediate steps), the usage given below is also available.
 
 `python text_detection_detail.py -i images/scenetext01.jpg -d both+ -t`
 
