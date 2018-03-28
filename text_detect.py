@@ -10,7 +10,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--image", help="Path to the image")
 parser.add_argument("-d", "--direction", default='both+', type=str, choices=set(("light", "dark", "both", "both+")), help="Text searching")
 parser.add_argument("-l", "--label", type=str, help="Ground truth label")
-parser.add_argument("-t", "--tesseract", action='store_true', help="Deskewing")
+parser.add_argument("-t", "--tesseract", action='store_true', help="Tesseract assistance")
+parser.add_argument("-f", "--fulltesseract", action='store_true', help="Full Tesseract")
 parser.add_argument("--test", type=str, help="Test directory path")
 parser.add_argument("--deskew", action='store_true', help="Deskewing")
 args = vars(parser.parse_args())
@@ -18,6 +19,7 @@ IMAGE_PATH = args["image"]
 DIRECTION = args["direction"]
 LABEL = args["label"]
 TESS = args["tesseract"]
+FULL_OCR = args["fulltesseract"]
 TEST = args["test"]
 DESKEW = args["deskew"]
 
@@ -55,11 +57,12 @@ def pltShow(*images):
 class TextDetection(object):
 
 	def __init__(self, image_path):
+		self.imagaPath = image_path
 		img = cv2.imread(image_path)
 		rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 		self.img = rgbImg
-		self.height, self.width = self.img.shape[:2]
 		self.final = rgbImg.copy()
+		self.height, self.width = self.img.shape[:2]
 		self.grayImg = cv2.cvtColor(self.img.copy(), cv2.COLOR_RGB2GRAY)
 		self.cannyImg = self.applyCanny(self.img)
 		self.sobelX = cv2.Sobel(self.grayImg, cv2.CV_64F, 1, 0, ksize=-1)
@@ -320,6 +323,7 @@ class TextDetection(object):
 						box = np.int0(box)
 						cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
 						cv2.drawContours(res, [box], 0, 255, -1)
+					os.remove("text.jpg")
 
 				else:
 					rect = cv2.minAreaRect(contour)
@@ -328,21 +332,46 @@ class TextDetection(object):
 					cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
 					cv2.drawContours(res, [box], 0, 255, -1)
 
-		os.remove("text.jpg")
 		return res
 
-def testNatural(path):
+	def fullOCR(self):
+		bounded = self.img.copy()
+		H, W = self.height, self.width
+		res = np.zeros_like(self.grayImg)
+
+		string = pytesseract.image_to_string(Image.open(self.imagaPath))
+		if string == u'':
+			return bounded, res
+
+		boxes = pytesseract.image_to_boxes(Image.open(self.imagaPath))
+		boxes = [map(int, i) for i in [b.split(" ")[1:-1] for b in boxes.split("\n")]]
+
+		for box in boxes:
+			b = (int(box[0]), int(H - box[1]), int(box[2]), int(H - box[3]))
+			cv2.rectangle(bounded, (b[0], b[1]), (b[2], b[3]), (0, 255, 0), 2)
+			cv2.rectangle(res, (b[0], b[1]), (b[2], b[3]), 255, -1)
+
+		# pltShow((img, "Original"), (bounded, "Boxes"), (res, "Mask"))
+		return bounded, res
+
+def testNatural(path, fullOCR=False):
 	P_R = []
+	unfound = 0
 	import xml.etree.ElementTree as ET
 	for root, dirs, filenames in os.walk(path):
 		print root
 		for filename in filenames:
-			if filename.endswith(".jpg"):
+
+			if filename.endswith(".jpg") or filename.endswith(".JPG"):
 				filePath = os.path.join(root, filename)
 				print filePath
 
 				try:
-					xmlFilename = filePath.rstrip(".jpg") + ".xml"
+					if filename.endswith(".jpg"):
+						base = filePath.rstrip(".jpg")
+					elif filename.endswith(".JPG"):
+						base = filePath.rstrip(".JPG")
+					xmlFilename = base + ".xml"
 					xml = ET.parse(xmlFilename).getroot()
 					noLabel = True
 					for word in xml.iter("word"):
@@ -353,10 +382,18 @@ def testNatural(path):
 						continue
 
 					td = TextDetection(filePath)
-					guessMask = td.detect()
+					if fullOCR:
+						_, guessMask = td.fullOCR()
+						if np.all(guessMask == 0.0):
+							P_R.append((0.0, 0.0))
+							unfound += 1
+							continue
+					else:
+						guessMask = td.detect()
 
 					gt = np.zeros_like(guessMask)
 					for word in xml.iter("word"):
+						# print("YEAH")
 						coordDict = word.attrib
 						x, y, w, h = map(int, [coordDict['x'], coordDict['y'], coordDict['width'], coordDict['height']])
 
@@ -375,20 +412,39 @@ def testNatural(path):
 					print "Precision:", precision
 					print "Recall:", recall
 					# pltShow((td.img, "original"), (guessMask, "guess"), (gt, "ground truth"), (match, "match"))
-				except:
-					continue
+				except Exception as e:
+					print
+					print(e)
+					print
+					# continue
 
 	P = np.mean([pr[0] for pr in P_R])
 	R = np.mean([pr[1] for pr in P_R])
 	f = (2.0 * P * R) / (P + R)
 
-	print "Total # of images tested:", len(P_R)
-	print "Average precision:", P
-	print "Average recall:", R
-	print "f:", f
+	P_no_zero = np.mean([pr[0] for pr in P_R if pr[0] != 0.0])
+	R_no_zero = np.mean([pr[1] for pr in P_R if pr[1] != 0.0])
+	f_no_zero = (2.0 * P_no_zero * R_no_zero) / (P_no_zero + R_no_zero)
 
-def testCompGen(path):
+	print
+	print "Total # of images tested:", len(P_R)
+	print "In {} images no string found".format(unfound)
+
+	print
+	print "Overall performance:"
+	print "\tAverage precision:", P
+	print "\tAverage recall:", R
+	print "\tf:", f
+
+	print
+	print "Performance for all found strings:"
+	print "\tAverage precision:", P_no_zero
+	print "\tAverage recall:", R_no_zero
+	print "\tf:", f_no_zero
+
+def testCompGen(path, fullOCR=False):
 	P_R = []
+	unfound = 0
 	for root, dirs, filenames in os.walk(path):
 		print root
 		for filename in filenames:
@@ -398,7 +454,14 @@ def testCompGen(path):
 
 				try:
 					td = TextDetection(filePath)
-					guessMask = td.detect()
+					if fullOCR:
+						_, guessMask = td.fullOCR()
+						if np.all(guessMask == 0.0):
+							P_R.append((0.0, 0.0))
+							unfound += 1
+							continue
+					else:
+						guessMask = td.detect()
 
 					gt = np.zeros_like(guessMask)
 					with open(filePath.rstrip(".png") + ".txt") as f:
@@ -422,22 +485,45 @@ def testCompGen(path):
 					print "Precision:", precision
 					print "Recall:", recall
 					# pltShow((td.img, "original"), (guessMask, "guess"), (gt, "ground truth"), (match, "match"))
-				except:
+				except Exception as e:
+					print
+					print(e)
+					print
 					continue
 
 	P = np.mean([pr[0] for pr in P_R])
 	R = np.mean([pr[1] for pr in P_R])
 	f = (2.0 * P * R) / (P + R)
 
-	print "Total # of images tested:", len(P_R)
-	print "Average precision:", P
-	print "Average recall:", R
-	print "f:", f
+	P_no_zero = np.mean([pr[0] for pr in P_R if pr[0] != 0.0])
+	R_no_zero = np.mean([pr[1] for pr in P_R if pr[1] != 0.0])
+	f_no_zero = (2.0 * P_no_zero * R_no_zero) / (P_no_zero + R_no_zero)
 
-td = TextDetection(IMAGE_PATH)
-res = td.detect()
-pltShow((td.img, "Original"), (td.final, "Final"))
-# plt.imshow(td.final)
-# plt.show()
-# testNatural(TEST)
-# testCompGen(TEST)
+	print
+	print "Total # of images tested:", len(P_R)
+	print "In {} images no string found".format(unfound)
+
+	print
+	print "Overall performance:"
+	print "\tAverage precision:", P
+	print "\tAverage recall:", R
+	print "\tf:", f
+
+	print
+	print "Performance for all found strings:"
+	print "\tAverage precision:", P_no_zero
+	print "\tAverage recall:", R_no_zero
+	print "\tf:", f_no_zero
+
+
+if IMAGE_PATH:
+	td = TextDetection(IMAGE_PATH)
+	if FULL_OCR:
+		bounded, res = td.fullOCR()
+		pltShow((td.img, "Original"), (bounded, "Final"), (res, "Mask"))
+	else:
+		res = td.detect()
+		pltShow((td.img, "Original"), (td.final, "Final"), (res, "Mask"))
+
+# testNatural(TEST, fullOCR=True)
+# testCompGen(TEST, fullOCR=True)
