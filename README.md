@@ -19,18 +19,45 @@ Pattern Recognition (ICPR2012), pages 681–684, Nov
 2012.
 
 And also [Tesseract-OCR](https://opensource.google.com/projects/tesseract.)
-tool is used at some steps of the algorithm.
+tool is used optionally, as assistance to the algorithm.
+
+## INSTALLING
+
+Insall requirements.txt file
+
+`pip install -r requirements.txt`
+
+For OCR assistance, install Tesseract
+
+`sudo apt install tesseract-ocr`
+
+
 
 ## USAGE
 
-`python text_detect.py -i images/scenetext01.jpg -d both+ -t`
+Basic usage is
 
-Option *-i* is image path, *-d* is SWT direction, *-t* option chooses if Tesseract will be used. Normally Tesseract runs poorly if whole image given as input.
+`python text_detect.py -i <input-image>`
+
+You can give output path
+
+`python text_detect.py -i images/scenetext01.jpg -o <output-image>`
+
+More options available
+
+`python text_detect.py -i images/scenetext01.jpg -o <output-file> -d <light,dark,both,both+> -t`
+
+Option *-i* is image path, *-o* is output path, *-d* is SWT direction (default is `both+`), *-t* option chooses if Tesseract will be used. Normally Tesseract runs poorly if whole image given as input.
 But I use it for final decision of bounding boxes and it is not required all the time.
+
+If you want to give whole image to Tesseract to see the impact of the algorithm, try this.
+
+`python text_detection.py -i images/scenetext01.jpg -f`
 
 For more detail (seeing intermediate steps), the usage given below is also available.
 
 `python text_detection_detail.py -i images/scenetext01.jpg -d both+ -t`
+
 
 ## Sample Results
 
@@ -39,3 +66,5 @@ For more detail (seeing intermediate steps), the usage given below is also avail
 ![sample2](images/figure_2.png)
 
 ![sample3](images/figure_3.png)
+
+![sample4](images/figure_4.png)

@@ -1,28 +1,27 @@
+## Libraries
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm, mode
 import pytesseract
 from PIL import Image
-import argparse, progressbar, sys, math, os
+import argparse, progressbar, sys, os
 
+## Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--image", help="Path to the image")
+parser.add_argument("-i", "--image", help="Path to the input image")
+parser.add_argument("-o", "--output", help="Path to the output image")
 parser.add_argument("-d", "--direction", default='both+', type=str, choices=set(("light", "dark", "both", "both+")), help="Text searching")
-parser.add_argument("-l", "--label", type=str, help="Ground truth label")
 parser.add_argument("-t", "--tesseract", action='store_true', help="Tesseract assistance")
 parser.add_argument("-f", "--fulltesseract", action='store_true', help="Full Tesseract")
-parser.add_argument("--test", type=str, help="Test directory path")
-parser.add_argument("--deskew", action='store_true', help="Deskewing")
 args = vars(parser.parse_args())
 IMAGE_PATH = args["image"]
+OUTPUT_PATH = args["output"]
 DIRECTION = args["direction"]
-LABEL = args["label"]
 TESS = args["tesseract"]
 FULL_OCR = args["fulltesseract"]
-TEST = args["test"]
-DESKEW = args["deskew"]
 
+## Parameters
 AREA_LIM = 1.0e-4
 PERIMETER_LIM = 1e-4
 ASPECT_RATIO_LIM = 5.0
@@ -36,8 +35,8 @@ STEP_LIMIT = 10
 KSIZE = 3
 ITERATION = 7
 MARGIN = 5
-SAVE = False
 
+## Displaying function
 def pltShow(*images):
 	count = len(images)
 	nRow = np.ceil(count / 3.)
@@ -50,8 +49,6 @@ def pltShow(*images):
 		plt.xticks([])
 		plt.yticks([])
 		plt.title(images[i][1])
-	if SAVE:
-		plt.savefig("test/final.jpg")
 	plt.show()
 
 class TextDetection(object):
@@ -130,7 +127,6 @@ class TextDetection(object):
 			mean, std, xMin, xMax = 0, 0, 0, 0
 		return (mostStrokeWidth, mostStrokeWidthCount, mean, std, xMin, xMax)
 
-
 	def getStrokes(self, (x, y, w, h)):
 		# strokes = np.zeros(self.grayImg.shape)
 		strokeWidths = np.array([[np.Infinity, np.Infinity]])
@@ -198,27 +194,6 @@ class TextDetection(object):
 		strokeWidths_opp =  np.delete(strokeWidths[:, 1], np.where(strokeWidths[:, 1] == np.Infinity))
 		strokeWidths = 		np.delete(strokeWidths[:, 0], np.where(strokeWidths[:, 0] == np.Infinity))
 		return strokeWidths, strokeWidths_opp
-
-	def deskew(self, img):
-
-		if img.shape[-1] == 3:
-			img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-		coords = np.column_stack(np.where(img > 0))
-		angle = cv2.minAreaRect(coords)[-1]
-
-		if angle < -45:
-			angle = -(90 + angle)
-		else:
-			angle = -angle
-
-		# Rotate
-		(h, w) = img.shape[:2]
-		center = (w // 2, h // 2)
-		M = cv2.getRotationMatrix2D(center, angle, 1.0)
-		rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT)
-
-		return rotated, angle
-
 
 	def detect(self):
 		res10 = np.zeros_like(self.img)
@@ -354,168 +329,6 @@ class TextDetection(object):
 		# pltShow((img, "Original"), (bounded, "Boxes"), (res, "Mask"))
 		return bounded, res
 
-def testNatural(path, fullOCR=False):
-	P_R = []
-	unfound = 0
-	import xml.etree.ElementTree as ET
-	for root, dirs, filenames in os.walk(path):
-		print root
-		for filename in filenames:
-
-			if filename.endswith(".jpg") or filename.endswith(".JPG"):
-				filePath = os.path.join(root, filename)
-				print filePath
-
-				try:
-					if filename.endswith(".jpg"):
-						base = filePath.rstrip(".jpg")
-					elif filename.endswith(".JPG"):
-						base = filePath.rstrip(".JPG")
-					xmlFilename = base + ".xml"
-					xml = ET.parse(xmlFilename).getroot()
-					noLabel = True
-					for word in xml.iter("word"):
-						noLabel = False
-
-					if noLabel:
-						print "No label. Skipped."
-						continue
-
-					td = TextDetection(filePath)
-					if fullOCR:
-						_, guessMask = td.fullOCR()
-						if np.all(guessMask == 0.0):
-							P_R.append((0.0, 0.0))
-							unfound += 1
-							continue
-					else:
-						guessMask = td.detect()
-
-					gt = np.zeros_like(guessMask)
-					for word in xml.iter("word"):
-						# print("YEAH")
-						coordDict = word.attrib
-						x, y, w, h = map(int, [coordDict['x'], coordDict['y'], coordDict['width'], coordDict['height']])
-
-						cv2.rectangle(gt, (x, y), (x + w, y + h), 255, -1)
-						# plt.imshow(img[y:y + h, x:x + w]);plt.show()
-
-					match = cv2.bitwise_and(guessMask, gt)
-
-					TP = len(np.where(match > 0)[0])
-					TP_FP = len(np.where(guessMask > 0)[0])
-					TP_FN = len(np.where(gt > 0)[0])
-					precision = 1.0 * TP / TP_FP
-					recall = 1.0 * TP / TP_FN
-					P_R.append((precision, recall))
-
-					print "Precision:", precision
-					print "Recall:", recall
-					# pltShow((td.img, "original"), (guessMask, "guess"), (gt, "ground truth"), (match, "match"))
-				except Exception as e:
-					print
-					print(e)
-					print
-					# continue
-
-	P = np.mean([pr[0] for pr in P_R])
-	R = np.mean([pr[1] for pr in P_R])
-	f = (2.0 * P * R) / (P + R)
-
-	P_no_zero = np.mean([pr[0] for pr in P_R if pr[0] != 0.0])
-	R_no_zero = np.mean([pr[1] for pr in P_R if pr[1] != 0.0])
-	f_no_zero = (2.0 * P_no_zero * R_no_zero) / (P_no_zero + R_no_zero)
-
-	print
-	print "Total # of images tested:", len(P_R)
-	print "In {} images no string found".format(unfound)
-
-	print
-	print "Overall performance:"
-	print "\tAverage precision:", P
-	print "\tAverage recall:", R
-	print "\tf:", f
-
-	print
-	print "Performance for all found strings:"
-	print "\tAverage precision:", P_no_zero
-	print "\tAverage recall:", R_no_zero
-	print "\tf:", f_no_zero
-
-def testCompGen(path, fullOCR=False):
-	P_R = []
-	unfound = 0
-	for root, dirs, filenames in os.walk(path):
-		print root
-		for filename in filenames:
-			if filename.endswith(".png"):
-				filePath = os.path.join(root, filename)
-				print filePath + "\n"
-
-				try:
-					td = TextDetection(filePath)
-					if fullOCR:
-						_, guessMask = td.fullOCR()
-						if np.all(guessMask == 0.0):
-							P_R.append((0.0, 0.0))
-							unfound += 1
-							continue
-					else:
-						guessMask = td.detect()
-
-					gt = np.zeros_like(guessMask)
-					with open(filePath.rstrip(".png") + ".txt") as f:
-						lines = f.readlines()
-						for line in lines:
-							x, y, xw, yh = map(int, line.split(", ")[:4])
-							w, h = xw - x, yh - y
-
-							cv2.rectangle(gt, (x, y), (x + w, y + h), 255, -1)
-							# plt.imshow(img[y:y + h, x:x + w]);plt.show()
-
-					match = cv2.bitwise_and(guessMask, gt)
-
-					TP = len(np.where(match > 0)[0])
-					TP_FP = len(np.where(guessMask > 0)[0])
-					TP_FN = len(np.where(gt > 0)[0])
-					precision = 1.0 * TP / TP_FP
-					recall = 1.0 * TP / TP_FN
-					P_R.append((precision, recall))
-
-					print "Precision:", precision
-					print "Recall:", recall
-					# pltShow((td.img, "original"), (guessMask, "guess"), (gt, "ground truth"), (match, "match"))
-				except Exception as e:
-					print
-					print(e)
-					print
-					continue
-
-	P = np.mean([pr[0] for pr in P_R])
-	R = np.mean([pr[1] for pr in P_R])
-	f = (2.0 * P * R) / (P + R)
-
-	P_no_zero = np.mean([pr[0] for pr in P_R if pr[0] != 0.0])
-	R_no_zero = np.mean([pr[1] for pr in P_R if pr[1] != 0.0])
-	f_no_zero = (2.0 * P_no_zero * R_no_zero) / (P_no_zero + R_no_zero)
-
-	print
-	print "Total # of images tested:", len(P_R)
-	print "In {} images no string found".format(unfound)
-
-	print
-	print "Overall performance:"
-	print "\tAverage precision:", P
-	print "\tAverage recall:", R
-	print "\tf:", f
-
-	print
-	print "Performance for all found strings:"
-	print "\tAverage precision:", P_no_zero
-	print "\tAverage recall:", R_no_zero
-	print "\tf:", f_no_zero
-
-
 if IMAGE_PATH:
 	td = TextDetection(IMAGE_PATH)
 	if FULL_OCR:
@@ -524,6 +337,6 @@ if IMAGE_PATH:
 	else:
 		res = td.detect()
 		pltShow((td.img, "Original"), (td.final, "Final"), (res, "Mask"))
-
-# testNatural(TEST, fullOCR=True)
-# testCompGen(TEST, fullOCR=True)
+		if OUTPUT_PATH:
+			plt.imsave(OUTPUT_PATH, td.final)
+			print "{} saved".format(OUTPUT_PATH)
