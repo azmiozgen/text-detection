@@ -9,8 +9,8 @@ import argparse, progressbar, sys, os
 
 ## Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--image", help="Path to the input image")
-parser.add_argument("-o", "--output", help="Path to the output image")
+parser.add_argument("-i", "--image", type=str, help="Path to the input image")
+parser.add_argument("-o", "--output", type=str, help="Path to the output image")
 parser.add_argument("-d", "--direction", default='both+', type=str, choices=set(("light", "dark", "both", "both+")), help="Text searching")
 parser.add_argument("-t", "--tesseract", action='store_true', help="Tesseract assistance")
 parser.add_argument("-f", "--fulltesseract", action='store_true', help="Full Tesseract")
