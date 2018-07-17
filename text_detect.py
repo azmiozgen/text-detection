@@ -40,7 +40,7 @@ MARGIN = 5
 def pltShow(*images):
 	count = len(images)
 	nRow = np.ceil(count / 3.)
-	for i in xrange(count):
+	for i in range(count):
 		plt.subplot(nRow, 3, i + 1)
 		if len(images[i][0].shape) == 2:
 			plt.imshow(images[i][0], cmap='gray')
@@ -127,11 +127,12 @@ class TextDetection(object):
 			mean, std, xMin, xMax = 0, 0, 0, 0
 		return (mostStrokeWidth, mostStrokeWidthCount, mean, std, xMin, xMax)
 
-	def getStrokes(self, (x, y, w, h)):
+	def getStrokes(self, xywh):
 		# strokes = np.zeros(self.grayImg.shape)
+		x, y, w, h = xywh
 		strokeWidths = np.array([[np.Infinity, np.Infinity]])
-		for i in xrange(y, y + h):
-			for j in xrange(x, x + w):
+		for i in range(y, y + h):
+			for j in range(x, x + w):
 				if self.cannyImg[i, j] != 0:
 					stepX = self.stepsX[i, j]
 					stepY = self.stepsY[i, j]
@@ -261,7 +262,7 @@ class TextDetection(object):
 												res10 = self.colorRegion(res10, region)
 
 		bar.finish()
-		print "{} regions left.".format(n10)
+		print("{} regions left.".format(n10))
 
 		## Binarize regions
 		binarized = np.zeros_like(self.grayImg)
@@ -270,10 +271,10 @@ class TextDetection(object):
 
 		## Dilate regions and find contours
 		kernel = np.zeros((KSIZE, KSIZE), dtype=np.uint8)
-		kernel[(KSIZE / 2)] = 1
+		kernel[(KSIZE // 2)] = 1
 
 		if TESS:
-			print "Tesseract eliminates.."
+			print("Tesseract eliminates..")
 
 		res = np.zeros_like(self.grayImg)
 		dilated = cv2.dilate(binarized.copy(), kernel, iterations=ITERATION)
@@ -339,4 +340,4 @@ if IMAGE_PATH:
 		pltShow((td.img, "Original"), (td.final, "Final"), (res, "Mask"))
 		if OUTPUT_PATH:
 			plt.imsave(OUTPUT_PATH, td.final)
-			print "{} saved".format(OUTPUT_PATH)
+			print("{} saved".format(OUTPUT_PATH))

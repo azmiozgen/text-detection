@@ -38,7 +38,7 @@ rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 def pltShow(*images):
 	count = len(images)
 	nRow = np.ceil(count / 3.)
-	for i in xrange(count):
+	for i in range(count):
 		plt.subplot(nRow, 3, i + 1)
 		if len(images[i][0].shape) == 2:
 			plt.imshow(images[i][0], cmap='gray')
@@ -209,11 +209,12 @@ class TextDetection(object):
 		return (mostStrokeWidth, mostStrokeWidthCount, mean, std, xMin, xMax)
 
 
-	def getStrokes(self, (x, y, w, h)):
+	def getStrokes(self, xywh):
+		x, y, w, h = xywh
 		# strokes = np.zeros(self.grayImg.shape)
 		strokeWidths = np.array([[np.Infinity, np.Infinity]])
-		for i in xrange(y, y + h):
-			for j in xrange(x, x + w):
+		for i in range(y, y + h):
+			for j in range(x, x + w):
 				if self.cannyImg[i, j] != 0:
 					stepX = self.stepsX[i, j]
 					stepY = self.stepsY[i, j]
@@ -406,7 +407,7 @@ class TextDetection(object):
 		# sys.exit()
 
 		bar.finish()
-		print "{} regions left.".format(n10)
+		print("{} regions left.".format(n10))
 
 		## Binarize regions
 		binarized = np.zeros_like(self.grayImg)
@@ -416,13 +417,13 @@ class TextDetection(object):
 		## Dilate regions and find contours
 		# kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
 		kernel = np.zeros((KSIZE, KSIZE), dtype=np.uint8)
-		kernel[(KSIZE / 2)] = 1
+		kernel[(KSIZE // 2)] = 1
 
 		dilated = cv2.dilate(binarized.copy(), kernel, iterations=ITERATION)
 		image, contours, hierarchies = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 		if TESS:
-			print "Tesseract eliminates.."
+			print("Tesseract eliminates..")
 
 		for i, (contour, hierarchy) in enumerate(zip(contours, hierarchies[0])):
 			if hierarchy[-1] == -1:
