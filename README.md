@@ -27,11 +27,13 @@ Insall requirements.txt file
 
 `pip install -r requirements.txt`
 
-For OCR assistance, install Tesseract
+Or you can create conda environment with 
+
+`conda create -f requirements.yml`
+
+For OCR assistance, install Tesseract from package manager
 
 `sudo apt install tesseract-ocr`
-
-
 
 ## USAGE
 
