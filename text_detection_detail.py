@@ -1,23 +1,29 @@
-import cv2
+import argparse
+import math
+import os
+import sys
+
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, mode
 from PIL import Image
+from scipy.stats import mode, norm
+
+import cv2
+import matplotlib.pyplot as plt
+import progressbar
 import pytesseract
-import argparse, progressbar, sys, math
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--image", required=True, help="Path to the image")
-parser.add_argument("-d", "--direction", required=True, type=str, choices=set(("light", "dark", "both", "both+")), help="Text searching")
+parser.add_argument("-d", "--direction", default='both+', type=str, choices=set(("light", "dark", "both", "both+")), help="Text searching")
 parser.add_argument("--deskew", action='store_true', help="Deskewing")
-parser.add_argument("-t", "--tesseract", action='store_true', help="Deskewing")
+parser.add_argument("-t", "--tesseract", action='store_true', help="Tesseract assistance")
 args = vars(parser.parse_args())
 IMAGE_PATH = args["image"]
 DIRECTION = args["direction"]
 DESKEW = args["deskew"]
 TESS = args["tesseract"]
 
-AREA_LIM = 1.0e-4
+AREA_LIM = 2.0e-4
 PERIMETER_LIM = 1e-4
 ASPECT_RATIO_LIM = 5.0
 OCCUPATION_LIM = (0.23, 0.90)
@@ -29,7 +35,7 @@ STROKE_WIDTH_VARIANCE_RATIO_LIM = 0.15		## Min value
 STEP_LIMIT = 10
 KSIZE = 3
 ITERATION = 7
-MARGIN = 3
+MARGIN = 10
 SAVE = False
 
 img = cv2.imread(IMAGE_PATH)
@@ -444,6 +450,7 @@ class TextDetection(object):
 						box = cv2.boxPoints(rect)
 						box = np.int0(box)
 						cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
+					os.remove("text.jpg")
 				else:
 					rect = cv2.minAreaRect(contour)
 					box = cv2.boxPoints(rect)

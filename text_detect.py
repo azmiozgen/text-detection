@@ -1,11 +1,16 @@
 ## Libraries
-import cv2
+import argparse
+import os
+import sys
+
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, mode
-import pytesseract
 from PIL import Image
-import argparse, progressbar, sys, os
+from scipy.stats import mode, norm
+
+import cv2
+import matplotlib.pyplot as plt
+import progressbar
+import pytesseract
 
 ## Arguments
 parser = argparse.ArgumentParser()
@@ -22,7 +27,7 @@ TESS = args["tesseract"]
 FULL_OCR = args["fulltesseract"]
 
 ## Parameters
-AREA_LIM = 1.0e-4
+AREA_LIM = 2.0e-4
 PERIMETER_LIM = 1e-4
 ASPECT_RATIO_LIM = 5.0
 OCCUPATION_LIM = (0.23, 0.90)
@@ -34,7 +39,7 @@ STROKE_WIDTH_VARIANCE_RATIO_LIM = 0.15		## Min value
 STEP_LIMIT = 10
 KSIZE = 3
 ITERATION = 7
-MARGIN = 5
+MARGIN = 10
 
 ## Displaying function
 def pltShow(*images):
