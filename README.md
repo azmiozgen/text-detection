@@ -16,7 +16,7 @@ Insall requirements.txt file
 
 Or you can create conda environment with 
 
-`conda create -f requirements.yml`
+`conda env create -f requirements.yml`
 
 For OCR assistance, install Tesseract from package manager
 
