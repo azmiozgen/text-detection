@@ -5,7 +5,7 @@ kiwisolver==1.0.1
 matplotlib==2.2.2
 numpy==1.14.4
 opencv-python==3.4.1.15
-Pillow==5.1.0
+Pillow==6.2.0
 progressbar==2.3
 pyparsing==2.2.0
 pytesseract==0.2.2
