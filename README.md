@@ -3,20 +3,16 @@
 This project aims to detect text regions in images using only image processing techniques with MSER (Maximally Stable Extremal Regions) and SWT (Stroke Width Transform).  And also [Tesseract-OCR](https://opensource.google.com/projects/tesseract.)
 tool is used optionally, as assistance to the algorithm.
 
-Please cite original paper:
+Please cite the paper:
 
 Özgen, A.C., Fasounaki, M. and Ekenel, H.K., 2018, May. Text detection in natural and computer-generated images. In 2018 26th Signal Processing and Communications Applications Conference (SIU) (pp. 1-4). IEEE.
 
 
 ## INSTALLING
 
-Insall requirements.txt file
+You can create conda environment with
 
-`pip install -r requirements.txt`
-
-Or you can create conda environment with 
-
-`conda env create -f requirements.yml`
+`conda env create -f requirements.txt`
 
 For OCR assistance, install Tesseract from package manager
 
@@ -26,37 +22,37 @@ For OCR assistance, install Tesseract from package manager
 
 Basic usage is
 
-`python text_detect.py -i <input-image>`
+`python detect.py -i <input-image>`
 
-You can give output path
+You can give output file
 
-`python text_detect.py -i images/scenetext01.jpg -o <output-image>`
+`python detect.py -i images/scenetext01.jpg -o <output-image>`
 
 More options available
 
-`python text_detect.py -i images/scenetext01.jpg -o <output-file> -d <light,dark,both,both+> -t`
+`python detect.py -i images/scenetext01.jpg -o <output-file> -d <light,dark,both,both+> -t`
 
 Option *-i* is image path, *-o* is output path, *-d* is SWT direction (default is `both+`), *-t* option chooses if Tesseract will be used. Normally Tesseract runs poorly if whole image given as input.
-But I use it for final decision of bounding boxes and it is not required all the time.
+But it is used as final decision of bounding boxes.
 
 If you want to give whole image to Tesseract to see the impact of the algorithm, try this.
 
-`python text_detection.py -i images/scenetext01.jpg -f`
+`python detect.py -i images/scenetext01.jpg -f`
 
 For more detail (seeing intermediate steps), the usage given below is also available.
 
-`python text_detection_detail.py -i images/scenetext01.jpg -d both+ -t`
+`python detect.py -i images/scenetext01.jpg -d both+ -t --details`
 
 
 ## Sample Results
 
-![sample1](images/figure_1.png)
+![sample1](./assets/output_scenetext01.png)
 
-![sample2](images/figure_2.png)
+![sample2](./assets/output_scenetext02.png)
 
-![sample3](images/figure_3.png)
+![sample3](./assets/output_scenetext03.png)
 
-![sample4](images/figure_4.png)
+![sample4](./assets/output_scenetext04.png)
 
 
 ## REFERENCES

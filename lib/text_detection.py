@@ -14,7 +14,7 @@ from lib.utils import plt_show, apply_canny
 
 class TextDetection(object):
 
-    def __init__(self, image_file, config, direction='both+', use_tesseract=True):
+    def __init__(self, image_file, config, direction='both+', use_tesseract=True, details=False):
 
         ## Read image
         self.image_file = image_file
@@ -25,6 +25,7 @@ class TextDetection(object):
 
         self.direction = direction
         self.use_tesseract = use_tesseract
+        self.details = details
         self.config = config
         self.AREA_LIM = config.AREA_LIM
         self.PERIMETER_LIM = config.PERIMETER_LIM
@@ -145,12 +146,19 @@ class TextDetection(object):
         return stroke_widths, stroke_widths_opp
 
     def detect(self):
-        res0 = np.zeros_like(self.img)
+        res9 = np.zeros_like(self.img)
+        if self.details:
+            res0 ,res1, res2, res3, res4, res5, res6, res7, res8 = res9.copy(), res9.copy(), res9.copy(), \
+                                                                   res9.copy(), res9.copy(), res9.copy(), \
+                                                                   res9.copy(), res9.copy(), res9.copy()
         regions, bboxes = self.get_MSERegions(self.gray_img)
         #TODO regions, bboxes = self.get_MSERegions(self.img)
 
         n_mser_regions = len(regions)
         n_final_regions = 0
+        if self.details:
+            n1, n2, n3, n4, n5, n6, n7, n8, n9 = [0] * 9
+
         bar = ProgressBar(maxval=n_mser_regions, widgets=[Bar(marker='=', left='[', right=']'), ' ', SimpleProgress()])
         bar.start()
 
@@ -158,19 +166,40 @@ class TextDetection(object):
             bar.update(i + 1)
 
             region = Region(region, bbox)
+            if self.details:
+                res0 = region.color(res0)
 
             if region.area < self.w * self.h * self.AREA_LIM:
                 continue
+            if self.details:
+                res1 = region.color(res1)
+                n1 += 1
+
             if region.get_perimeter(self.canny_img) < (2 * (self.w + self.h) * self.PERIMETER_LIM):
                 continue
+            if self.details:
+                res2 = region.color(res2)
+                n2 += 1
+
             if region.get_aspect_ratio() > self.ASPECT_RATIO_LIM:
                 continue
+            if self.details:
+                res3 = region.color(res3)
+                n3 += 1
+
             occupation = region.get_occupation()
             if (occupation < self.OCCUPATION_INTERVAL[0]) or (occupation > self.OCCUPATION_INTERVAL[1]):
                 continue
+            if self.details:
+                res4 = region.color(res4)
+                n4 += 1
+
             compactness = region.get_compactness()
             if (compactness < self.COMPACTNESS_INTERVAL[0]) or (compactness > self.COMPACTNESS_INTERVAL[1]):
                 continue
+            if self.details:
+                res5 = region.color(res5)
+                n5 += 1
 
             x, y, w, h = bbox
 
@@ -189,24 +218,36 @@ class TextDetection(object):
 
             if len(stroke_widths) < self.SWT_TOTAL_COUNT:
                 continue
+            if self.details:
+                res6 = region.color(res6)
+                n6 += 1
+
             if std > self.SWT_STD_LIM:
                 continue
+            if self.details:
+                res7 = region.color(res7)
+                n7 += 1
 
             stroke_width_size_ratio = stroke_width / max(region.w, region.h)
             if stroke_width_size_ratio < self.STROKE_WIDTH_SIZE_RATIO_LIM:
                 continue
+            if self.details:
+                res8 = region.color(res8)
+                n8 += 1
 
             stroke_width_variance_ratio = stroke_width / (std * std + 1e-10)
             if stroke_width_variance_ratio > self.STROKE_WIDTH_VARIANCE_RATIO_LIM:
                 n_final_regions += 1
-                res0 = region.color(res0)
+                res9 = region.color(res9)
+                if self.details:
+                    n9 += 1
 
         bar.finish()
         print("{} regions left.".format(n_final_regions))
 
         ## Binarize regions
         binarized = np.zeros_like(self.gray_img)
-        rows, cols, _ = np.where(res0 != [0, 0, 0])
+        rows, cols, _ = np.where(res9 != [0, 0, 0])
         binarized[rows, cols] = 255
 
         ## Dilate regions and find contours
@@ -247,6 +288,26 @@ class TextDetection(object):
                 box = np.int0(box)
                 cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
                 cv2.drawContours(res, [box], 0, 255, -1)
+
+        if self.details:
+            plt_show((self.img, "Image"), \
+                     (self.canny_img, "Canny"), \
+                     (res0, "MSER,({} regions)".format(n_mser_regions)), \
+                     (res1, "Min Area={},({} regions)".format(self.AREA_LIM, n1)), \
+                     (res2, "Min Perimeter={},({} regions)".format(self.PERIMETER_LIM, n2)), \
+                     (res3, "Aspect Ratio={},({} regions)".format(self.ASPECT_RATIO_LIM, n3)), \
+                     (res4, "Occupation={},({} regions)".format(self.OCCUPATION_INTERVAL, n4)), \
+                     (res5, "Compactness={},({} regions)".format(self.COMPACTNESS_INTERVAL, n5))
+                    )
+
+            plt_show((res6, "STROKES TOTAL COUNT={},({} regions)".format(self.SWT_TOTAL_COUNT, n6)),\
+                     (res7, "STROKES STD={},({} regions)".format(self.SWT_STD_LIM, n7)), \
+                     (res8, "STROKE/SIZE RATIO={},({} regions)".format(self.STROKE_WIDTH_SIZE_RATIO_LIM, n8)),\
+                     (res9, "STROKE/VARIANCE RATIO={},({} regions)".format(self.STROKE_WIDTH_VARIANCE_RATIO_LIM, n9)),\
+                     (binarized, "Binarized"),\
+                     (dilated, "Dilated (iterations={},ksize={})".format(self.ITERATION, self.KSIZE)),\
+                     (self.final, "Final")\
+                    )
 
         return res
 
