@@ -2,20 +2,17 @@ import os
 
 import cv2
 import numpy as np
-from scipy.stats import mode, norm
-from pytesseract import image_to_string, image_to_boxes
 from PIL import Image
-
 from progressbar import ProgressBar, Bar, SimpleProgress
+from pytesseract import image_to_string, image_to_boxes
+from scipy.stats import mode, norm
 
 from lib.region import Region
 from lib.utils import plt_show, apply_canny
 
 
 class TextDetection(object):
-
     def __init__(self, image_file, config, direction='both+', use_tesseract=True, details=False):
-
         ## Read image
         self.image_file = image_file
         img = cv2.imread(image_file)
@@ -105,15 +102,17 @@ class TextDetection(object):
                         step_size += 1
 
                         if go:
-                            curX = np.int(np.floor(i + gradX * step_size))
-                            curY = np.int(np.floor(j + gradY * step_size))
+                            curX = int(np.floor(i + gradX * step_size))
+                            curY = int(np.floor(j + gradY * step_size))
                             if (curX <= y or curY <= x or curX >= y + h or curY >= x + w):
                                 go = False
                             if go and ((curX != prevX) or (curY != prevY)):
                                 try:
                                     if self.canny_img[curX, curY] != 0:
-                                        if np.arccos(gradX * -self.gradsX[curX, curY] + gradY * -self.gradsY[curX, curY]) < np.pi / 2.0:
-                                            stroke_width = int(np.sqrt((curX - i) ** 2  + (curY - j) ** 2))
+                                        if np.arccos(gradX * -self.gradsX[curX, curY] + \
+                                                    gradY * -self.gradsY[curX, curY]) < np.pi / 2.0:
+                                            stroke_width = int(np.sqrt((curX - i) ** 2 + \
+                                                                       (curY - j) ** 2))
                                             go = False
                                 except IndexError:
                                     go = False
@@ -122,15 +121,20 @@ class TextDetection(object):
                                 prevY = curY
 
                         if go_opp:
-                            curX_opp = np.int(np.floor(i - gradX * step_size))
-                            curY_opp = np.int(np.floor(j - gradY * step_size))
-                            if (curX_opp <= y or curY_opp <= x or curX_opp >= y + h or curY_opp >= x + w):
+                            curX_opp = int(np.floor(i - gradX * step_size))
+                            curY_opp = int(np.floor(j - gradY * step_size))
+                            if (curX_opp <= y or \
+                                curY_opp <= x or \
+                                curX_opp >= y + h or \
+                                curY_opp >= x + w):
                                 go_opp = False
                             if go_opp and ((curX_opp != prevX_opp) or (curY_opp != prevY_opp)):
                                 try:
                                     if self.canny_img[curX_opp, curY_opp] != 0:
-                                        if np.arccos(gradX * -self.gradsX[curX_opp, curY_opp] + gradY * -self.gradsY[curX_opp, curY_opp]) < np.pi/2.0:
-                                            stroke_width_opp = int(np.sqrt((curX_opp - i) ** 2  + (curY_opp - j) ** 2))
+                                        if np.arccos(gradX * -self.gradsX[curX_opp, curY_opp] + \
+                                              gradY * -self.gradsY[curX_opp, curY_opp]) < np.pi/2.0:
+                                            stroke_width_opp = int(np.sqrt((curX_opp - i) ** 2 + \
+                                                                           (curY_opp - j) ** 2))
                                             go_opp = False
 
                                 except IndexError:
@@ -139,18 +143,23 @@ class TextDetection(object):
                                 prevX_opp = curX_opp
                                 prevY_opp = curY_opp
 
-                    stroke_widths = np.append(stroke_widths, [(stroke_width, stroke_width_opp)], axis=0)
+                    stroke_widths = np.append(stroke_widths, [(stroke_width, stroke_width_opp)],
+                                              axis=0)
 
-        stroke_widths_opp = np.delete(stroke_widths[:, 1], np.where(stroke_widths[:, 1] == np.Infinity))
-        stroke_widths = np.delete(stroke_widths[:, 0], np.where(stroke_widths[:, 0] == np.Infinity))
+        stroke_widths_opp = np.delete(stroke_widths[:, 1],
+                                      np.where(stroke_widths[:, 1] == np.Infinity))
+        stroke_widths = np.delete(stroke_widths[:, 0],
+                                  np.where(stroke_widths[:, 0] == np.Infinity))
         return stroke_widths, stroke_widths_opp
 
     def detect(self):
         res9 = np.zeros_like(self.img)
         if self.details:
-            res0 ,res1, res2, res3, res4, res5, res6, res7, res8 = res9.copy(), res9.copy(), res9.copy(), \
-                                                                   res9.copy(), res9.copy(), res9.copy(), \
-                                                                   res9.copy(), res9.copy(), res9.copy()
+            res0 ,res1, res2, res3, res4, res5, res6, res7, res8 = res9.copy(), res9.copy(), \
+                                                                   res9.copy(), res9.copy(), \
+                                                                   res9.copy(), res9.copy(), \
+                                                                   res9.copy(), res9.copy(), \
+                                                                   res9.copy()
         regions, bboxes = self.get_MSERegions(self.gray_img)
         #TODO regions, bboxes = self.get_MSERegions(self.img)
 
@@ -159,11 +168,12 @@ class TextDetection(object):
         if self.details:
             n1, n2, n3, n4, n5, n6, n7, n8, n9 = [0] * 9
 
-        bar = ProgressBar(maxval=n_mser_regions, widgets=[Bar(marker='=', left='[', right=']'), ' ', SimpleProgress()])
-        bar.start()
+        bar_ = ProgressBar(maxval=n_mser_regions,
+                          widgets=[Bar(marker='=', left='[', right=']'), ' ', SimpleProgress()])
+        bar_.start()
 
         for i, (region, bbox) in enumerate(zip(regions, bboxes)):
-            bar.update(i + 1)
+            bar_.update(i + 1)
 
             region = Region(region, bbox)
             if self.details:
@@ -188,14 +198,16 @@ class TextDetection(object):
                 n3 += 1
 
             occupation = region.get_occupation()
-            if (occupation < self.OCCUPATION_INTERVAL[0]) or (occupation > self.OCCUPATION_INTERVAL[1]):
+            if (occupation < self.OCCUPATION_INTERVAL[0]) or \
+               (occupation > self.OCCUPATION_INTERVAL[1]):
                 continue
             if self.details:
                 res4 = region.color(res4)
                 n4 += 1
 
             compactness = region.get_compactness()
-            if (compactness < self.COMPACTNESS_INTERVAL[0]) or (compactness > self.COMPACTNESS_INTERVAL[1]):
+            if (compactness < self.COMPACTNESS_INTERVAL[0]) or \
+               (compactness > self.COMPACTNESS_INTERVAL[1]):
                 continue
             if self.details:
                 res5 = region.color(res5)
@@ -206,11 +218,15 @@ class TextDetection(object):
             stroke_widths, stroke_widths_opp = self.get_strokes((x, y, w, h))
             if self.direction != "both+":
                 stroke_widths = np.append(stroke_widths, stroke_widths_opp, axis=0)
-                stroke_width, stroke_width_count, _, std, _, _ = self.get_stroke_properties(stroke_widths)
+                stroke_width, stroke_width_count, _, std, _, _ = \
+                        self.get_stroke_properties(stroke_widths)
             else:
-                stroke_width, stroke_width_count, _, std, _, _ = self.get_stroke_properties(stroke_widths)
-                stroke_width_opp, stroke_width_count_opp, _, std_opp, _, _ = self.get_stroke_properties(stroke_widths_opp)
-                if stroke_width_count_opp > stroke_width_count:        ## Take the stroke_widths with max of counts stroke_width (most probable one)
+                stroke_width, stroke_width_count, _, std, _, _ = \
+                        self.get_stroke_properties(stroke_widths)
+                stroke_width_opp, stroke_width_count_opp, _, std_opp, _, _ = \
+                        self.get_stroke_properties(stroke_widths_opp)
+                ## Take the stroke_widths with max of counts stroke_width (most probable one)
+                if stroke_width_count_opp > stroke_width_count:
                     stroke_widths = stroke_widths_opp
                     stroke_width = stroke_width_opp
                     stroke_width_count = stroke_width_count_opp
@@ -242,8 +258,8 @@ class TextDetection(object):
                 if self.details:
                     n9 += 1
 
-        bar.finish()
-        print("{} regions left.".format(n_final_regions))
+        bar_.finish()
+        print(f'{n_final_regions} regions left.')
 
         ## Binarize regions
         binarized = np.zeros_like(self.gray_img)
@@ -256,7 +272,7 @@ class TextDetection(object):
 
         res = np.zeros_like(self.gray_img)
         dilated = cv2.dilate(binarized.copy(), kernel, iterations=self.ITERATION)
-        _, contours, hierarchies = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchies = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         if self.use_tesseract:
             print("Tesseract will eliminate..")
@@ -267,45 +283,47 @@ class TextDetection(object):
 
             if self.use_tesseract:
                 x, y, w, h = cv2.boundingRect(contour)
-                if (y - self.MARGIN > 0) and (y + h + self.MARGIN < self.height) and (x - self.MARGIN > 0) and (x + w + self.MARGIN < self.width):
-                    cv2.imwrite(temp_file, self.final[y - self.MARGIN:y + h + self.MARGIN, x - self.MARGIN:x + w + self.MARGIN])
+                if (y - self.MARGIN > 0) and \
+                   (y + h + self.MARGIN < self.height) and \
+                   (x - self.MARGIN > 0) and \
+                   (x + w + self.MARGIN < self.width):
+                    cv2.imwrite(temp_file, self.final[y - self.MARGIN:y + h + self.MARGIN, \
+                                                      x - self.MARGIN:x + w + self.MARGIN])
                 else:
                     cv2.imwrite(temp_file, self.final[y:y + h, x:x + w])
 
                 ## Run tesseract
                 string = image_to_string(Image.open(temp_file))
-                if string is not u'':
+                if string != '':
                     rect = cv2.minAreaRect(contour)
-                    box = cv2.boxPoints(rect)
-                    box = np.int0(box)
+                    box = cv2.boxPoints(rect).astype(int)
                     cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
                     cv2.drawContours(res, [box], 0, 255, -1)
                 os.remove(temp_file)
 
             else:
                 rect = cv2.minAreaRect(contour)
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
+                box = cv2.boxPoints(rect).astype(int)
                 cv2.drawContours(self.final, [box], 0, (0, 255, 0), 2)
                 cv2.drawContours(res, [box], 0, 255, -1)
 
         if self.details:
             plt_show((self.img, "Image"), \
                      (self.canny_img, "Canny"), \
-                     (res0, "MSER,({} regions)".format(n_mser_regions)), \
-                     (res1, "Min Area={},({} regions)".format(self.AREA_LIM, n1)), \
-                     (res2, "Min Perimeter={},({} regions)".format(self.PERIMETER_LIM, n2)), \
-                     (res3, "Aspect Ratio={},({} regions)".format(self.ASPECT_RATIO_LIM, n3)), \
-                     (res4, "Occupation={},({} regions)".format(self.OCCUPATION_INTERVAL, n4)), \
-                     (res5, "Compactness={},({} regions)".format(self.COMPACTNESS_INTERVAL, n5))
+                     (res0, f'MSER,({n_mser_regions} regions)'), \
+                     (res1, f'Min Area={self.AREA_LIM},({n1} regions)'), \
+                     (res2, f'Min Perimeter={self.PERIMETER_LIM},({n2} regions)'), \
+                     (res3, f'Aspect Ratio={self.ASPECT_RATIO_LIM},({n3} regions)'), \
+                     (res4, f'Occupation={self.OCCUPATION_INTERVAL},({n4} regions)'), \
+                     (res5, f'Compactness={self.COMPACTNESS_INTERVAL},({n5} regions)')
                     )
 
-            plt_show((res6, "STROKES TOTAL COUNT={},({} regions)".format(self.SWT_TOTAL_COUNT, n6)),\
-                     (res7, "STROKES STD={},({} regions)".format(self.SWT_STD_LIM, n7)), \
-                     (res8, "STROKE/SIZE RATIO={},({} regions)".format(self.STROKE_WIDTH_SIZE_RATIO_LIM, n8)),\
-                     (res9, "STROKE/VARIANCE RATIO={},({} regions)".format(self.STROKE_WIDTH_VARIANCE_RATIO_LIM, n9)),\
+            plt_show((res6, f'STROKES TOTAL COUNT={self.SWT_TOTAL_COUNT},({n6} regions)'),\
+                     (res7, f'STROKES STD={self.SWT_STD_LIM},({n7} regions)'), \
+                    (res8, f'STROKE/SIZE RATIO={self.STROKE_WIDTH_SIZE_RATIO_LIM},({n8} regions)'),\
+            (res9, f'STROKE/VARIANCE RATIO={self.STROKE_WIDTH_VARIANCE_RATIO_LIM},({n9} regions)'),\
                      (binarized, "Binarized"),\
-                     (dilated, "Dilated (iterations={},ksize={})".format(self.ITERATION, self.KSIZE)),\
+                     (dilated, f'Dilated (iterations={self.ITERATION}, ksize={self.KSIZE})'),\
                      (self.final, "Final")\
                     )
 
@@ -316,7 +334,7 @@ class TextDetection(object):
         res = np.zeros_like(self.gray_img)
 
         string = image_to_string(Image.open(self.image_file))
-        if string == u'':
+        if string == '':
             return bounded, res
 
         boxes = image_to_boxes(Image.open(self.image_file))
