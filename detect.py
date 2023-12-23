@@ -25,7 +25,8 @@ TESS = args['tesseract']
 DETAILS = args['details']
 FULL_OCR = args['fulltesseract']
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     config = Config()
     td = TextDetection(IMAGE_FILE, config, direction=DIRECTION, use_tesseract=TESS, details=DETAILS)
     if FULL_OCR:
