@@ -10,9 +10,11 @@ Please cite the paper:
 
 ## INSTALLING
 
-You can create conda environment with
+Use `Python>=3.11`
 
-`conda env create -f requirements.txt`
+Install requirements with pip
+
+`pip install -r requirements.txt`
 
 For OCR assistance, install Tesseract from package manager
 
@@ -26,22 +28,22 @@ Basic usage is
 
 You can give output file
 
-`python detect.py -i images/scenetext01.jpg -o <output-image>`
+`python detect.py -i assets/scenetext01.jpg -o <output-image>`
 
 More options available
 
-`python detect.py -i images/scenetext01.jpg -o <output-file> -d <light,dark,both,both+> -t`
+`python detect.py -i assets/scenetext01.jpg -o <output-file> -d <light,dark,both,both+> -t`
 
 Option *-i* is image path, *-o* is output path, *-d* is SWT direction (default is `both+`), *-t* option chooses if Tesseract will be used. Normally Tesseract runs poorly if whole image given as input.
 But it is used as final decision of bounding boxes.
 
 If you want to give whole image to Tesseract to see the impact of the algorithm, try this.
 
-`python detect.py -i images/scenetext01.jpg -f`
+`python detect.py -i assets/scenetext01.jpg -f`
 
 For more detail (seeing intermediate steps), the usage given below is also available.
 
-`python detect.py -i images/scenetext01.jpg -d both+ -t --details`
+`python detect.py -i assets/scenetext01.jpg -d both+ -t --details`
 
 
 ## Sample Results
