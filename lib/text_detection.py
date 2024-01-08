@@ -274,6 +274,9 @@ class TextDetection(object):
         dilated = cv2.dilate(binarized.copy(), kernel, iterations=self.ITERATION)
         contours, hierarchies = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        if hierarchies is None:
+            hierarchies = [[-1] * len(contours)]
+
         if self.use_tesseract:
             print("Tesseract will eliminate..")
             temp_file = 'text.jpg'
