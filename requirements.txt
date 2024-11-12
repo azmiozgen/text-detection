@@ -1,3 +1,5 @@
+matplotlib
 opencv-python
 pytesseract
 progressbar
+scipy
