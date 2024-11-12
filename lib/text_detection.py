@@ -80,7 +80,7 @@ class TextDetection(object):
     def get_strokes(self, xywh):
 
         x, y, w, h = xywh
-        stroke_widths = np.array([[np.Infinity, np.Infinity]])
+        stroke_widths = np.array([[np.inf, np.inf]])
         for i in range(y, y + h):
             for j in range(x, x + w):
                 if self.canny_img[i, j] != 0:
@@ -96,8 +96,8 @@ class TextDetection(object):
                     else:
                         go, go_opp = True, True
 
-                    stroke_width = np.Infinity
-                    stroke_width_opp = np.Infinity
+                    stroke_width = np.inf
+                    stroke_width_opp = np.inf
                     while (go or go_opp) and (step_size < self.STEP_LIMIT):
                         step_size += 1
 
@@ -147,9 +147,9 @@ class TextDetection(object):
                                               axis=0)
 
         stroke_widths_opp = np.delete(stroke_widths[:, 1],
-                                      np.where(stroke_widths[:, 1] == np.Infinity))
+                                      np.where(stroke_widths[:, 1] == np.inf))
         stroke_widths = np.delete(stroke_widths[:, 0],
-                                  np.where(stroke_widths[:, 0] == np.Infinity))
+                                  np.where(stroke_widths[:, 0] == np.inf))
         return stroke_widths, stroke_widths_opp
 
     def detect(self):

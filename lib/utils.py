@@ -11,7 +11,7 @@ def apply_canny(img, sigma=0.33):
 
 def plt_show(*images):
     count = len(images)
-    nRow = np.ceil(count / 3.)
+    nRow = int(np.ceil(count / 3.))
     for i in range(count):
         plt.subplot(nRow, 3, i + 1)
         if len(images[i][0].shape) == 2:
