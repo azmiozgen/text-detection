@@ -252,7 +252,7 @@ class TextDetection(object):
                 n8 += 1
 
             stroke_width_variance_ratio = stroke_width / (std * std + 1e-10)
-            if stroke_width_variance_ratio > self.STROKE_WIDTH_VARIANCE_RATIO_LIM:
+            if stroke_width_variance_ratio >= self.STROKE_WIDTH_VARIANCE_RATIO_LIM:
                 n_final_regions += 1
                 res9 = region.color(res9)
                 if self.details:

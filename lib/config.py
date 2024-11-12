@@ -8,8 +8,8 @@ class Config:
     COMPACTNESS_INTERVAL = (3e-3, 1e-1)
     SWT_TOTAL_COUNT = 10
     SWT_STD_LIM = 20.0
-    STROKE_WIDTH_SIZE_RATIO_LIM = 0.02            ## Min value
-    STROKE_WIDTH_VARIANCE_RATIO_LIM = 0.15        ## Min value
+    STROKE_WIDTH_SIZE_RATIO_LIM = 0.0            ## Min value
+    STROKE_WIDTH_VARIANCE_RATIO_LIM = 0.0        ## Min value
     STEP_LIMIT = 10
     KSIZE = 3
     ITERATION = 7
